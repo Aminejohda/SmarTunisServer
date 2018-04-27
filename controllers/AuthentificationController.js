@@ -16,8 +16,8 @@ var i2b = require("imageurl-base64");
 var request = require("request");
 var AWS = require('aws-sdk');
 var credentials = {
-    accessKeyId: "AKIAI4MCDCWTFC63MBDQ",
-    secretAccessKey: "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"
+    accessKeyId: "AKIAJYLRSUAEMT5I5GSA",
+    secretAccessKey: "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"
 };
 AWS.config.credentials = credentials;
 AWS.config.region = 'us-west-2';
