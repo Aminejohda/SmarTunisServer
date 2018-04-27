@@ -7,8 +7,8 @@ let User = require('../models/User')
  var AWS = require('aws-sdk');
  var notcorrect=""
 var credentials = {
-	accessKeyId: "AKIAJYLRSUAEMT5I5GSA",
-	secretAccessKey: "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"
+    accessKeyId: "AKIAJPX4B4DOLDVU5J3Q",
+    secretAccessKey: "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"
 };
 var Nightmare = require('nightmare'),
     nightmare = Nightmare({
