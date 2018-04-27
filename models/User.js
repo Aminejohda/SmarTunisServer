@@ -1,0 +1,65 @@
+const mongoose = require('mongoose');
+let UserSchema = mongoose.Schema({
+	
+	FirstName:{
+		type:String
+	},	
+	LastName:{
+		type:String
+	},	
+	Email:{
+		type:String
+	},	
+	Password:{
+		type:String
+	},	
+	Facebookaccount:{
+		type:String
+	},	
+	Twitteraccount:{
+		type:String
+	},	
+	//Linkedinaccount:{
+		//type:String
+	//},
+	Linkedinaccount:[],	
+	Interests:[],	
+	interestsFacebook:[],
+	interestsTwitter:[],	
+	interestsLinkedin:[],	
+	Picture:{
+		type:String
+	},
+	FacebookPicture:{
+		type:String
+	},	
+	Address:{
+		type:String
+	},	
+	Phone:{
+		type:String
+	},	
+	Fax:{
+		type:String
+	},
+	Role:{
+		type:String
+	},	
+	FaceId:{
+		type:String
+	},
+	FaceBookId:{
+		type:String
+	},
+	CompanyName:{
+		type:String
+	},
+	IsActive:{
+		type:Boolean,
+		default: true
+	},
+	IsLogged:{
+		type:Boolean
+	}
+});
+const User = module.exports =  mongoose.model('User',UserSchema)
