@@ -4,14 +4,21 @@ configAuth = require('./auth')
 const bcrypt = require('bcryptjs')
 let User = require('../models/User')
  var  fs = require('fs');
+ var AWS = require('aws-sdk');
  var notcorrect=""
-var request = require("request");
-
+var credentials = {
+    accessKeyId: "AKIAJPX4B4DOLDVU5J3Q",
+    secretAccessKey: "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"
+};
 var Nightmare = require('nightmare'),
     nightmare = Nightmare({
         show: true
     })
-
+AWS.config.credentials = credentials;
+AWS.config.region = 'us-west-2';
+var rekognition = new AWS.Rekognition({
+	region: AWS.config.region
+});
 module.exports = function(passport){
 passport.use(new LocalStrategy(
 	 {
@@ -30,23 +37,19 @@ var matches = req.body.img.match(regex);
 var data = matches[2];
 var buffer = new Buffer(data, 'base64');
       fs.writeFile('public/images/uploads/Users/'+nameimg, base64Image, {encoding: 'base64'}, function(err) {
-var params = { method: 'POST',
-  url: 'https://api.kairos.com/recognize',
-  headers: 
-   { 
-     app_key: '50de11940366c58fe8eef7fab5f140c2',
-     app_id: 'fd8e76e3',
-     'content-type': 'application/json' },
-  body: { image: base64Image, gallery_name: 'SmarTunis' },
-  json: true };
-   request(params, function (err, response, body) {
+var params = {
+  CollectionId: "STRING_VALUE", 
+  Image: {
+    Bytes : buffer
+  }
+ };
+  rekognition.searchFacesByImage(params, function(err, body) {
     if (err) console.log(err, err.stack); // an error occurred
     else    {
-if(typeof body.images !=='undefined'){
-if(typeof body.images[0].candidates !=='undefined'){
-  var Confidence = body.images[0].candidates[0].confidence
+if(body.FaceMatches.length > 0){
+  var Confidence = body.FaceMatches[0].Face.Confidence
   if(Confidence > 0.5){
-   	User.findOne({FaceId : body.images[0].candidates[0].face_id ,Email:username ,IsActive : true}, function(err, user){
+   	User.findOne({FaceId : body.FaceMatches[0].Face.FaceId ,Email:username ,IsActive : true}, function(err, user){
 		if(err) throw err;
 		if (!user) {
 			return done(null, false, {message: 'No user found'});
@@ -61,16 +64,7 @@ if(typeof body.images[0].candidates !=='undefined'){
 
     }
     else{
-     console.log("no face detected")
-				return done(null, false, {message:'wrong password'})
-
-
-    }
-    }
-    else{
-     console.log("no face detected")
-    	
-				return done(null, false, {message:'wrong password'})
+      res.send('none')
 
 
     }

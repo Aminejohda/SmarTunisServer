@@ -14,7 +14,16 @@ let User = require('../models/User')
 var fs = require("fs-extra");
 var i2b = require("imageurl-base64");
 var request = require("request");
-
+var AWS = require('aws-sdk');
+var credentials = {
+    accessKeyId: "AKIAJPX4B4DOLDVU5J3Q",
+    secretAccessKey: "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"
+};
+AWS.config.credentials = credentials;
+AWS.config.region = 'us-west-2';
+var rekognition = new AWS.Rekognition({
+    region: AWS.config.region
+});
 
 function jwtSignUser(user) {
     const ONE_WEEK = 60 * 60 * 24 * 7;
@@ -85,71 +94,57 @@ module.exports = {
                         console.log(err)
                         res.send("err")
                     }
-                   
-                    
+                    var awsparams = {
+                        CollectionId: "STRING_VALUE",
+                        DetectionAttributes: ["ALL"],
+                        ExternalImageId: nameimg,
+                        Image: {
+                            Bytes: buffer
+                        }
+                    }
+                    rekognition.detectFaces({
+                        Image: {
+                            Bytes: buffer
+                        }
+                    }, function(err, datadetect) {
+                        if (err) {
+                            console.log(err, err.stack);
+                            res.send("err")
+                        } 
+                        else {
+                            if (datadetect.FaceDetails.length == 1) {
+                                console.log(datadetect.FaceDetails.length)
+                                        rekognition.indexFaces(
+                                            awsparams,
+                                            function(err, dataaws) {
+                                                console.log(dataaws)
+                                                if (err) {
+                                                    console.log("indexFaces error", err.message);
+                                                } else {
+                                                    let newUser = new User({
+                                                        FirstName: name,
+                                                        Email: email,
+                                                        LastName: lastname,
+                                                        Password: password,
+                                                        Picture: nameimg,
+                                                        Role :"User",
+                                                        FaceId: dataaws.FaceRecords[0].Face.FaceId
+                                                    })
+                                                    newUser.Password = hash;
 
 
-
-var options = { method: 'POST',
-  url: 'https://api.kairos.com/detect',
-  headers: 
-   { 
-     app_key: '50de11940366c58fe8eef7fab5f140c2',
-     app_id: 'fd8e76e3',
-     'content-type': 'application/json' },
-  body: { image: base64Image, selector: 'ROLL' },
-  json: true };
-
-request(options, function (error, response, body) {
-console.log('response')
-if (typeof body.images !== "undefined") {
-  if(body.images[0].faces.length >  1){
-console.log("many faces detected")
-  res.send('many faces detected')
-  }else {
-    console.log(body.images[0].faces.length)
-var optionss = { method: 'POST',
-  url: 'https://api.kairos.com/enroll',
-  headers: 
-   { 
-     app_key: '50de11940366c58fe8eef7fab5f140c2',
-     app_id: 'fd8e76e3',
-     'content-type': 'application/json' },
-  body: 
-   { image: base64Image,
-     subject_id: nameimg,
-     gallery_name: 'SmarTunis' },
-  json: true };
-  request(optionss, function (error, response, body) {
-  if (error) throw new Error(error);
-console.log(body.face_id)
-let newUser = new User({
-     FirstName: name,
-     Email: email,
-     LastName: lastname,
-     Password: password,
-     Picture: nameimg,
-     Role :"User",
-     FaceId: body.face_id
- })
- newUser.Password = hash;
-
-
- newUser.save(function(err) {
-     if (err) throw err;
-     console.log("c bon")
-     res.send("done")
- });
-});
-  }
-}
- if (typeof body.Errors !== "undefined"){
-console.log("no face detected")
-  res.send('no face detected')
-}
-});
-
-
+                                                    newUser.save(function(err) {
+                                                        if (err) throw err;
+                                                        console.log("c bon")
+                                                        res.send("done")
+                                                    });
+                                               }
+                                           })
+                                    }else{
+                                            res.send("barcha wjouh fel taswira")
+                                        }
+                                    }
+                                })
                 })
             })
         })
@@ -157,18 +152,9 @@ console.log("no face detected")
 
 
 
-
-
-
-
-
-
-
-
-
 console.log("lenna")
             nightmare.goto('https://www.facebook.com/')
-    .wait(3000).type('#email', 'hamma1925@hotmail.fr').type('#pass', 'slipknot666')
+    .wait(3000).type('#email', 'h@hotmail.fr').type('#pass', 's6')
   .click('.uiButtonConfirm input').wait(5000)
  .evaluate(function(name,lastname){
     console.log(name)
@@ -215,43 +201,44 @@ request(options, function (error, response, body) {
   {
        // xx.push(itemxx["facebookid"]= body.id)
         //xx.push(itemxx["pictureurl"]=body.picture.data.url )
+            i2b(body.picture.data.url, function(err, base64Image) {
                 
-     
+   if(err) console.log(err)
+      var regex = /^data:.+\/(.+);base64,(.*)$/;
+                        var matches = base64Image.dataUri.match(regex);
+                        var data = matches[2];
+                        var buffer = new Buffer(data, 'base64');
             //console.log(result.facebookpicture)
-
-            var params = { method: 'POST',
-  url: 'https://api.kairos.com/recognize',
-  headers: 
-   { 
-     app_key: '50de11940366c58fe8eef7fab5f140c2',
-     app_id: 'fd8e76e3',
-     'content-type': 'application/json' },
-  body: { image: body.picture.data.url, gallery_name: 'SmarTunis' },
-  json: true };
-
-  request(params, function (error, response, bodys) {
-    if (error) console.log("no face detected in facebook picture"); // an error occurred
+            var params = {
+  CollectionId: "STRING_VALUE", 
+  Image: {
+    Bytes : buffer
+  }
+ };
+  rekognition.searchFacesByImage(params, function(err, bodys) {
+    if (err) console.log("no face detected in facebook picture"); // an error occurred
     else    {
-     // console.log(bodys.images[0].message);
+      console.log(bodys.FaceMatches.length);
       //let data = JSON.parse(body);  
 //var jsonPretty = JSON.stringify(body,null,2); 
-if(typeof bodys.images !=='undefined'){
-if(typeof bodys.images[0].candidates !=='undefined'){
-  var Confidence = bodys.images[0].candidates[0].confidence
+if(bodys.FaceMatches.length > 0){
+  var Confidence = bodys.FaceMatches[0].Face.Confidence
   if(Confidence > 0.5){
+    if (typeof body.picture !=='undefined') {
 
-          User.find({FaceId : bodys.images[0].candidates[0].face_id }, function(err,user){
+
+          User.find({FaceId : bodys.FaceMatches[0].Face.FaceId }, function(err,user){
           if(err){
             throw err;
           }
 
-let query= {FaceId:bodys.images[0].candidates[0].face_id}
+let query= {FaceId:bodys.FaceMatches[0].Face.FaceId}
 
     User.update(query,{FacebookPicture : body.picture.data.url , FaceBookId :body.id, Facebookaccount:"https://www.facebook.com/profile.php?id="+body.id },function (err,result) {
         if(err){
          console.log(err);
         }
-        console.log("houwa"+bodys.images[0].candidates[0].face_id);
+        console.log("houwa"+bodys.FaceMatches[0].Face.FaceId);
         io.sockets.emit('news', user)
           console.log(user);
 //res.send("done");
@@ -260,8 +247,10 @@ let query= {FaceId:bodys.images[0].candidates[0].face_id}
         })
 
 
-        console.log(body.picture.data.url+" hedha houwa id"+body.id+" "+Confidence)
+        console.log(body.picture.data.url+" hedha houwa id"+body.id+" "+Confidence)}else{
+  console.log("lenna el mochkla")
 
+    }
   }
 
 
@@ -273,14 +262,12 @@ let query= {FaceId:bodys.images[0].candidates[0].face_id}
 
 
     }
-    }else{
-      console.log('7keya fer8a')
-    }
 
   }        
  
   });
    // console.log(base64Image)
+ })
   //console.log(body.picture.data.url);
 
   }
@@ -294,7 +281,6 @@ let query= {FaceId:bodys.images[0].candidates[0].face_id}
  })
 
     })
-
       }
 
 
